@@ -1,0 +1,13 @@
+{
+  "name": "functions",
+  "description": "Cloud Functions for PWA Estudos IA",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "firebase-admin": "^12.5.0",
+    "firebase-functions": "^5.0.1"
+  }
+}
