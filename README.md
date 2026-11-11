@@ -1,71 +1,58 @@
 # PWA de Estudos com IA
 
-## Visão geral
-Aplicativo **Progressive Web App** que auxilia nos estudos de programação e outras áreas (ex.: Enfermagem) simulando entrevistas com IA. Funciona como site e pode ser instalado em Android, iOS e desktop.
+App instalável (PWA) que simula entrevistas de estudo com IA. Você cria categorias (ex.: JavaScript, Enfermagem), escolhe o nível e responde às perguntas; a IA avalia e faz a próxima.
 
-## Stack técnico
-- **Frontend**: HTML5, CSS3, JavaScript puro (ES6 modules)
-- **PWA**: `manifest.webmanifest` + Service Worker com cache offline
-- **Backend**: Firebase Authentication + Firestore
-- **IA**: Cloud Function que chama a API Anthropic (Claude). A chave da IA fica segura no servidor.
-- **Hospedagem**: Firebase Hosting + Functions (HTTPS obrigatório)
+## Stack
+- **Front-end:** HTML, CSS e JavaScript puro (ES modules), sem build
+- **Firebase:** Authentication (e-mail/senha), Firestore, Hosting
+- **IA:** Cloud Function (`functions/index.js`) que chama a API da Anthropic. A chave fica só no servidor (Secret Manager)
 
-## Começando
-1. **Instalar Firebase CLI**
+## Estrutura
+```
+public/            -> tudo que vai para o Hosting
+  index.html, styles.css, manifest.webmanifest, service-worker.js
+  icons/           -> ícones do PWA
+  src/             -> módulos JS (firebase, auth, db, ai, voice, router, ui, main)
+functions/         -> Cloud Function "ask"
+firestore.rules    -> regras de segurança
+firebase.json      -> hosting + rewrite /api/ask -> função
+```
+
+## Configuração (uma vez)
+1. Crie um projeto em https://console.firebase.google.com e **ative o plano Blaze** (necessário para Functions chamarem APIs externas).
+2. No console: **Authentication → Sign-in method → E-mail/senha** e **Firestore Database → Criar banco**.
+3. **Configurações do projeto → Seus apps → Web** e copie a config para `public/src/firebase-config.js`.
+4. Edite `.firebaserc` com o ID do seu projeto.
+5. Instale a CLI e faça login:
    ```bash
    npm install -g firebase-tools
    firebase login
    ```
-2. **Criar projeto Firebase** (ou usar um existente) e copiar o ID.
-3. **Configurar variáveis de ambiente** em `functions/.env` (não versionado):
-   ```
-   ANTHROPIC_API_KEY=your_key_here
-   ```
-4. **Instalar dependências**
+6. Guarde a chave da Anthropic como secret:
    ```bash
-   cd pwa-estudos-ia
-   npm install
+   firebase functions:secrets:set ANTHROPIC_API_KEY
+   ```
+7. Instale as dependências da função:
+   ```bash
    cd functions && npm install && cd ..
    ```
-5. **Deploy**
-   ```bash
-   firebase init (Hosting, Functions, Firestore, Authentication)
-   firebase deploy
-   ```
 
-## Estrutura de diretórios
+## Deploy
+```bash
+firebase deploy
 ```
- pwa-estudos-ia/
- ├─ public/
- │   ├─ index.html
- │   ├─ manifest.webmanifest
- │   └─ service-worker.js
- ├─ src/
- │   ├─ main.js
- │   ├─ router.js
- │   ├─ ui.js
- │   ├─ auth.js
- │   ├─ db.js
- │   ├─ ai.js
- │   └─ voice.js
- ├─ firebase/
- │   ├─ firebase.json
- │   └─ firestore.rules
- ├─ functions/
- │   ├─ index.js
- │   └─ package.json
- ├─ tests/
- │   ├─ unit/
- │   └─ e2e/
- ├─ .eslintrc.json
- ├─ jest.config.js
- └─ cypress.json
+Depois de cada deploy que mude arquivos em `public/`, incremente `CACHE_VERSION` em `public/service-worker.js`.
+
+## Testar localmente
+```bash
+firebase emulators:start
 ```
+Para a função no emulador, crie `functions/.secret.local` com `ANTHROPIC_API_KEY=sua_chave`.
 
-## Testes e auditoria
-- **Jest** para testes unitários
-- **Cypress** para testes end‑to‑end
-- **Lighthouse** (via `firebase hosting:channel:deploy preview`) para auditoria PWA, performance, acessibilidade e boas práticas.
+## Ajustes
+Variáveis opcionais da função (`functions/.env`): `ANTHROPIC_MODEL` (padrão `claude-sonnet-5-5`) e `DAILY_TOKEN_LIMIT` (padrão 30000 tokens/usuário/dia).
 
-## Próximos passos
-O código base já está criado; prossiga implementando cada módulo conforme o roadmap no relatório.
+## Segurança
+- A função valida o ID token do Firebase; o `uid` nunca é aceito do cliente.
+- `ai_sessions` e `usage` só são escritos pelo servidor (regras bloqueiam escrita do cliente).
+- Textos do usuário e da IA são escapados na interface (sem XSS).
